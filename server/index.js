@@ -96,20 +96,78 @@ app.post("/api/capture", async (req, res) => {
     await page.waitForTimeout(1000);
     console.log(`[${requestId}] ✓ Render wait complete`);
 
-    // Quick attempt to hide/remove common cookie banners
-    console.log(`[${requestId}] Attempting to remove cookie banners...`);
+    // Click the cookie consent button using the data-cookie-banner attribute
+    console.log(`[${requestId}] Attempting to click cookie consent button...`);
     try {
-      await page.evaluate(() => {
-        // Remove common cookie/consent elements
-        document
-          .querySelectorAll(
-            '[id*="cookie"], [class*="cookie"], [id*="consent"], [class*="consent"]'
-          )
-          .forEach((el) => el.remove());
+      // Wait for page to settle
+      await page.waitForTimeout(2000);
+      
+      // Debug: Log button existence
+      const buttonExists = await page.evaluate(() => {
+        const btn = document.querySelector('[data-cookie-banner="accept"]');
+        return !!btn;
       });
-      console.log(`[${requestId}] ✓ Cookie banners removed`);
+      console.log(`[${requestId}] Button exists: ${buttonExists}`);
+      
+      // Method 1: Try direct click via page.click()
+      try {
+        await page.click('[data-cookie-banner="accept"]', { timeout: 3000, force: true });
+        console.log(`[${requestId}] ✓ Button clicked via page.click()`);
+        await page.waitForTimeout(2000);
+      } catch (clickErr) {
+        console.log(`[${requestId}] page.click() failed: ${clickErr.message}`);
+        
+        // Method 2: Click via evaluate with scrollIntoView
+        const clicked = await page.evaluate(() => {
+          const btn = document.querySelector('[data-cookie-banner="accept"]');
+          if (btn) {
+            btn.scrollIntoView({ behavior: 'instant', block: 'center' });
+            btn.click();
+            return true;
+          }
+          return false;
+        });
+        
+        if (clicked) {
+          console.log(`[${requestId}] ✓ Button clicked via evaluate`);
+          await page.waitForTimeout(2000);
+        } else {
+          console.log(`[${requestId}] ℹ️ Button not found with selector, trying to hide banner...`);
+          
+          // Method 3: Hide via multiple aggressive CSS approaches
+          await page.evaluate(() => {
+            // Try to hide all common cookie banner elements
+            const bannersSelectors = [
+              '[data-cookie-banner]',
+              '[class*="cookie-banner"]',
+              '[class*="cookie"]',
+              '[id*="cookie"]',
+              '[class*="consent"]',
+              '[id*="consent"]',
+              '[role="dialog"]',
+              '.bbc-m6b7yc',  // BBC specific
+            ];
+            
+            bannersSelectors.forEach(selector => {
+              try {
+                document.querySelectorAll(selector).forEach(el => {
+                  el.style.display = 'none !important';
+                  el.style.visibility = 'hidden !important';
+                  el.style.opacity = '0 !important';
+                  el.style.pointerEvents = 'none !important';
+                  el.setAttribute('aria-hidden', 'true');
+                });
+              } catch (e) {
+                // Ignore selector errors
+              }
+            });
+          });
+          console.log(`[${requestId}] ✓ Cookie banners hidden via CSS`);
+          await page.waitForTimeout(1000);
+        }
+      }
     } catch (e) {
-      console.log(`[${requestId}] ℹ️ Cookie removal skipped (not found)`);
+      console.log(`[${requestId}] ⚠️ Cookie handling error: ${e.message}`);
     }
 
     // Construct filename
