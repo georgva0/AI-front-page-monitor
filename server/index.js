@@ -3,6 +3,7 @@ const { chromium } = require("playwright");
 const cors = require("cors");
 const fs = require("fs");
 const path = require("path");
+const sharp = require("sharp");
 
 const app = express();
 const PORT = 5000;
@@ -172,18 +173,20 @@ app.post("/api/capture", async (req, res) => {
 
     // Construct filename
     const timestamp = getTimestamp();
-    const filename = `${serviceName}_${timestamp}.jpg`;
+    const filename = `${serviceName}_${timestamp}.webp`;
     const filepath = path.join(screengrabsDir, filename);
 
     // Take full page screenshot as JPEG with quality 85
     console.log(`[${requestId}] Taking screenshot...`);
-    await page.screenshot({
-      path: filepath,
+    const screenshotBuffer = await page.screenshot({
       fullPage: true,
       type: "jpeg",
       quality: 85,
     });
-    console.log(`[${requestId}] ✓ Screenshot taken`);
+
+    // Convert to WebP
+    await sharp(screenshotBuffer).webp({ quality: 80 }).toFile(filepath);
+    console.log(`[${requestId}] ✓ Screenshot taken and converted to WebP`);
     console.log(`[${requestId}] Saved to: ${filepath}`);
 
     clearTimeout(responseTimeout);
