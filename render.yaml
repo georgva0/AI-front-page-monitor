@@ -4,7 +4,7 @@ services:
     runtime: node
     rootDir: server
     plan: free
-    buildCommand: npm ci && PLAYWRIGHT_BROWSERS_PATH=0 npx playwright install chromium
+    buildCommand: npm ci
     startCommand: npm start
     healthCheckPath: /health
     envVars:
