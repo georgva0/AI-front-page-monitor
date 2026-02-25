@@ -4,7 +4,7 @@ services:
     runtime: node
     rootDir: server
     plan: free
-    buildCommand: npm ci && npx playwright install --with-deps chromium
+    buildCommand: npm ci && PLAYWRIGHT_BROWSERS_PATH=0 npx playwright install --with-deps chromium
     startCommand: npm start
     healthCheckPath: /health
     envVars:
@@ -12,3 +12,5 @@ services:
         value: 20
       - key: GEMINI_API_KEY
         sync: false
+      - key: PLAYWRIGHT_BROWSERS_PATH
+        value: 0
