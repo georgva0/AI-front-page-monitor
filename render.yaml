@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: front-page-monitor-api
+    runtime: node
+    rootDir: server
+    plan: free
+    buildCommand: npm ci && npx playwright install chromium
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: GEMINI_API_KEY
+        sync: false

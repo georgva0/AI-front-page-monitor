@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#222222" />
+    <title>Offline | AI Front Page Tracker</title>
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f0f2f5;
+        font-family: Georgia, "Times New Roman", Times, serif;
+        color: #222;
+      }
+      .card {
+        max-width: 520px;
+        margin: 20px;
+        background: white;
+        border-radius: 12px;
+        border: 1px solid #dee2e6;
+        padding: 24px;
+        text-align: center;
+      }
+      h1 {
+        margin-top: 0;
+        font-size: 1.4rem;
+      }
+      p {
+        line-height: 1.6;
+        margin: 10px 0;
+      }
+      .status {
+        margin-top: 6px;
+        color: #5f6368;
+        font-size: 0.95rem;
+      }
+      button {
+        margin-top: 16px;
+        padding: 10px 16px;
+        border: none;
+        border-radius: 6px;
+        background: #222;
+        color: #fff;
+        font-family: inherit;
+        cursor: pointer;
+      }
+      button:hover {
+        background: #000;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="card">
+      <h1>You're offline</h1>
+      <p>AI Front Page Tracker is currently unavailable because there is no internet connection.</p>
+      <p>Reconnect and refresh to continue capturing and analysing front pages.</p>
+      <p id="offline-status" class="status">Waiting for connection…</p>
+      <button id="retry-btn" type="button">Retry now</button>
+    </main>
+    <script>
+      const statusEl = document.getElementById("offline-status");
+      const retryBtn = document.getElementById("retry-btn");
+
+      const updateStatus = () => {
+        statusEl.textContent = navigator.onLine
+          ? "Connection restored. You can retry now."
+          : "Waiting for connection…";
+      };
+
+      window.addEventListener("online", updateStatus);
+      window.addEventListener("offline", updateStatus);
+      retryBtn.addEventListener("click", () => window.location.reload());
+      updateStatus();
+    </script>
+  </body>
+</html>

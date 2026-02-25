@@ -1,0 +1,61 @@
+{
+  "id": ".",
+  "short_name": "AI Front Page",
+  "name": "AI Front Page Tracker",
+  "description": "Capture and analyse international news front pages with AI insights.",
+  "lang": "en-GB",
+  "icons": [
+    {
+      "src": "favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "logo192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "logo512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "categories": ["news", "productivity", "utilities"],
+  "shortcuts": [
+    {
+      "name": "Capture front page",
+      "short_name": "Capture",
+      "description": "Open app and capture a fresh front page screenshot",
+      "url": "./?action=capture",
+      "icons": [
+        {
+          "src": "logo192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Ask follow-up",
+      "short_name": "Ask AI",
+      "description": "Open app and ask a follow-up question about the latest front page",
+      "url": "./?action=ask",
+      "icons": [
+        {
+          "src": "logo192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
+  "theme_color": "#222222",
+  "background_color": "#f0f2f5"
+}
