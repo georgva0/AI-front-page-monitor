@@ -74,11 +74,29 @@ app.post("/api/capture", async (req, res) => {
   try {
     // Launch Playwright
     console.log(`[${requestId}] Launching browser...`);
-    const launchOptions = {};
+    const launchOptions = {
+      headless: true,
+      args: [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage",
+      ],
+    };
     if (process.env.CHROMIUM_EXECUTABLE_PATH) {
       launchOptions.executablePath = process.env.CHROMIUM_EXECUTABLE_PATH;
     }
-    browser = await chromium.launch(launchOptions);
+
+    try {
+      browser = await chromium.launch(launchOptions);
+    } catch (launchError) {
+      console.log(
+        `[${requestId}] Primary launch failed, retrying with Playwright bundled Chromium: ${launchError.message}`,
+      );
+      browser = await chromium.launch({
+        ...launchOptions,
+        executablePath: chromium.executablePath(),
+      });
+    }
     console.log(`[${requestId}] ✓ Browser launched`);
 
     // Create browser context with user agent
@@ -250,7 +268,9 @@ app.post("/api/analyze", async (req, res) => {
   console.log(`[${requestId}] ========== AI ANALYSIS REQUEST START ==========`);
   console.log(`[${requestId}] Analysing: ${filename}`);
   console.log(`[${requestId}] Analysis type: ${analysisType}`);
-  console.log(`[${requestId}] Service/Language: ${serviceName || 'not specified'}`);
+  console.log(
+    `[${requestId}] Service/Language: ${serviceName || "not specified"}`,
+  );
 
   try {
     const filepath = path.join(screengrabsDir, filename);
@@ -287,13 +307,20 @@ app.post("/api/analyze", async (req, res) => {
       console.log(`[${requestId}] ✓ Coverage Analysis completed`);
       results.coverageAnalysis = coverageData;
     } else if (analysisType === "audienceFitAnalysis") {
-      console.log(`[${requestId}] Sending to Gemini for Audience Fit Analysis...`);
+      console.log(
+        `[${requestId}] Sending to Gemini for Audience Fit Analysis...`,
+      );
       const audienceFitData = await analyzeAudienceFit(filepath);
       console.log(`[${requestId}] ✓ Audience Fit Analysis completed`);
       results.audienceFitAnalysis = audienceFitData;
     } else if (analysisType === "socialMediaRewrite") {
-      console.log(`[${requestId}] Sending to Gemini for Social Media Rewrite...`);
-      const socialMediaData = await rewriteForSocialMedia(filepath, serviceName);
+      console.log(
+        `[${requestId}] Sending to Gemini for Social Media Rewrite...`,
+      );
+      const socialMediaData = await rewriteForSocialMedia(
+        filepath,
+        serviceName,
+      );
       console.log(`[${requestId}] ✓ Social Media Rewrite completed`);
       results.socialMediaRewrite = socialMediaData;
     }
@@ -362,10 +389,15 @@ app.post("/api/ask-frontpage", async (req, res) => {
     }
 
     console.log(`[${requestId}] ✓ Follow-up answer completed`);
-    console.log(`[${requestId}] ========== FOLLOW-UP QUESTION SUCCESS ==========`);
+    console.log(
+      `[${requestId}] ========== FOLLOW-UP QUESTION SUCCESS ==========`,
+    );
     res.end();
   } catch (error) {
-    console.error(`[${requestId}] ❌ FOLLOW-UP QUESTION FAILED:`, error.message);
+    console.error(
+      `[${requestId}] ❌ FOLLOW-UP QUESTION FAILED:`,
+      error.message,
+    );
     if (!res.headersSent) {
       return res.status(500).json({
         error: "Failed to answer follow-up question",
