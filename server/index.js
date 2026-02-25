@@ -227,6 +227,22 @@ app.post("/api/capture", async (req, res) => {
     console.log(`[${requestId}] ✓ Screenshot taken and converted to WebP`);
     console.log(`[${requestId}] Saved to: ${filepath}`);
 
+    // Keep only the latest capture to limit storage usage
+    try {
+      const existingFiles = fs.readdirSync(screengrabsDir);
+      existingFiles.forEach((existingFile) => {
+        const existingPath = path.join(screengrabsDir, existingFile);
+        if (existingPath !== filepath && fs.statSync(existingPath).isFile()) {
+          fs.unlinkSync(existingPath);
+        }
+      });
+      console.log(`[${requestId}] ✓ Previous captures deleted`);
+    } catch (cleanupError) {
+      console.log(
+        `[${requestId}] ⚠️ Could not fully clean old captures: ${cleanupError.message}`,
+      );
+    }
+
     clearTimeout(responseTimeout);
 
     console.log(`[${requestId}] ========== CAPTURE REQUEST SUCCESS ==========`);
