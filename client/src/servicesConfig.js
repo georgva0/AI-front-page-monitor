@@ -46,7 +46,7 @@ export const REGIONS = {
     { name: "Romania", url: "https://www.bbc.com/romania" },
     { name: "Russian", url: "https://www.bbc.com/russian" },
     { name: "Serbian", url: "https://www.bbc.com/serbian/lat" },
-    { name: "Turkce", url: "https://www.bbc.com/turkce" },
+
     { name: "Ukrainian", url: "https://www.bbc.com/ukrainian" },
   ],
   "Latin America": [
@@ -56,6 +56,7 @@ export const REGIONS = {
   "Middle East": [
     { name: "Arabic", url: "https://www.bbc.com/arabic" },
     { name: "Persian", url: "https://www.bbc.com/persian" },
+    { name: "Turkce", url: "https://www.bbc.com/turkce" },
   ],
 };
 
