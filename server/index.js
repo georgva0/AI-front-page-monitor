@@ -380,6 +380,37 @@ app.post("/api/capture", async (req, res) => {
       );
     }
 
+    // Ensure multilingual glyph support (including CJK) before screenshot
+    try {
+      await page.addStyleTag({
+        content: `
+          @import url('https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600;700&family=Noto+Sans+JP:wght@400;500;700&family=Noto+Sans+SC:wght@400;500;700&display=swap');
+
+          html, body, body * {
+            font-family: "Noto Sans JP", "Noto Sans SC", "Noto Sans", Arial, sans-serif !important;
+          }
+        `,
+      });
+
+      await page.evaluate(async () => {
+        if (document.fonts && document.fonts.ready) {
+          try {
+            await Promise.race([
+              document.fonts.ready,
+              new Promise((resolve) => setTimeout(resolve, 3000)),
+            ]);
+          } catch {
+            // Ignore font readiness issues
+          }
+        }
+      });
+      console.log(`[${requestId}] ✓ Fallback fonts applied for multilingual text`);
+    } catch (fontError) {
+      console.log(
+        `[${requestId}] ⚠️ Font fallback warning: ${fontError.message}`,
+      );
+    }
+
     // Construct filename
     const timestamp = getTimestamp();
     const filename = `${serviceName}_${timestamp}.webp`;
