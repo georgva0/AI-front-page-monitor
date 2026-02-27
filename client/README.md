@@ -1,70 +1,68 @@
-# Getting Started with Create React App
+# AI Front Page Tracker (Frontend)
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+This frontend powers the **AI Front Page Tracker** user interface.
 
-## Available Scripts
+It lets users:
+- choose a BBC language service by region,
+- capture the latest front page screenshot via backend automation,
+- run multiple AI analyses on the captured image,
+- ask follow-up questions and receive streamed responses.
 
-In the project directory, you can run:
+## What the app does
 
-### `npm start`
+The UI communicates with a backend API to:
+1. Capture a fresh screenshot of a selected front page.
+2. Display that screenshot preview.
+3. Run one selected analysis type (summary, sentiment, coverage, audience fit, etc.).
+4. Show structured analysis output and charts.
+5. Allow follow-up Q&A about the same front page.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+## Tech stack
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+- React (Create React App)
+- Chart.js + react-chartjs-2
+- Treemap chart plugin (`chartjs-chart-treemap`)
 
-### `npm test`
+## Environment variables
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+Create a `.env` file in `client/` (or configure in Netlify):
 
-### `npm run build`
+```env
+REACT_APP_API_BASE_URL=http://localhost:5000
+```
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+For production, set this to your deployed backend URL.
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+## Scripts
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+From `client/`:
 
-### `npm run eject`
+- `npm start` — run local development server
+- `npm run build` — create production build
+- `npm test` — run tests
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+## Local development
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+1. Start backend in `server/`.
+2. Set `REACT_APP_API_BASE_URL` to backend URL (default local: `http://localhost:5000`).
+3. Start frontend:
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+```bash
+cd client
+npm install
+npm start
+```
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+## Deployment notes
 
-## Learn More
+This frontend is designed to be deployed on Netlify.
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+Expected setup:
+- Base directory: `client`
+- Build command: `npm ci && npm run build`
+- Publish directory: `build`
+- Environment variable: `REACT_APP_API_BASE_URL=<your-backend-url>`
 
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+For full deployment instructions, see:
+- `../DEPLOY_NETLIFY.md`
+- `../HOW_IT_WORKS.md`
