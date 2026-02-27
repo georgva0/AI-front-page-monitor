@@ -107,8 +107,37 @@ app.post("/api/capture", async (req, res) => {
       userAgent:
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
       viewport: { width: 1024, height: 768 },
+      locale: "en-GB",
+      timezoneId: "Europe/London",
     });
     console.log(`[${requestId}] ✓ Context created`);
+
+    // Block common ad/tracking network requests to keep captures cleaner
+    const blockedHosts = [
+      "doubleclick.net",
+      "googlesyndication.com",
+      "googleadservices.com",
+      "adservice.google.com",
+      "securepubads.g.doubleclick.net",
+      "adnxs.com",
+      "criteo.com",
+      "taboola.com",
+      "outbrain.com",
+      "facebook.net",
+      "ads-twitter.com",
+      "scorecardresearch.com",
+      "quantserve.com",
+      "amazon-adsystem.com",
+    ];
+
+    await context.route("**/*", (route) => {
+      const requestUrl = route.request().url();
+      if (blockedHosts.some((host) => requestUrl.includes(host))) {
+        return route.abort();
+      }
+      return route.continue();
+    });
+    console.log(`[${requestId}] ✓ Ad/tracker request blocking enabled`);
 
     console.log(`[${requestId}] Creating new page...`);
     const page = await context.newPage();
@@ -207,6 +236,40 @@ app.post("/api/capture", async (req, res) => {
       }
     } catch (e) {
       console.log(`[${requestId}] ⚠️ Cookie handling error: ${e.message}`);
+    }
+
+    // Remove visible ad containers before screenshot
+    try {
+      await page.evaluate(() => {
+        const adSelectors = [
+          '[class*="advert"]',
+          '[id*="advert"]',
+          '[class*="ad-"]',
+          '[id^="ad-"]',
+          '[id*="google_ads"]',
+          '[class*="google-ad"]',
+          '[data-component*="advert"]',
+          '[data-testid*="advert"]',
+          "iframe[src*='doubleclick']",
+          "iframe[src*='googlesyndication']",
+          "iframe[src*='adservice']",
+        ];
+
+        adSelectors.forEach((selector) => {
+          try {
+            document.querySelectorAll(selector).forEach((el) => {
+              el.remove();
+            });
+          } catch {
+            // Ignore selector issues
+          }
+        });
+      });
+      console.log(`[${requestId}] ✓ Ad containers removed from page`);
+    } catch (adCleanupError) {
+      console.log(
+        `[${requestId}] ⚠️ Ad cleanup warning: ${adCleanupError.message}`,
+      );
     }
 
     // Construct filename
