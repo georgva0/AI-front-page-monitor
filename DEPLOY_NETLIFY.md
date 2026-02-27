@@ -1,6 +1,7 @@
 # Deploying `front_page_monitor` with Netlify + GitHub
 
 This repo is split into:
+
 - `client/` (React PWA) → deploy on Netlify
 - `server/` (Express + Playwright + Gemini) → deploy on a Node host (Render/Railway/Fly/etc.)
 
@@ -30,11 +31,13 @@ Deploy `server/` to a Node provider that supports Playwright/Chromium.
 ### Backend health check
 
 After deploy, confirm your API URL responds and logs show server startup:
+
 - `Server running on http://localhost:<PORT>` (or host equivalent)
 
 ## 3) Netlify setup (GitHub-connected)
 
 In Netlify:
+
 1. **Add new site** → **Import from Git** → select this repository.
 2. Build settings are already provided by `netlify.toml`:
    - Base directory: `client`
@@ -76,13 +79,16 @@ Open deployed Netlify URL and verify:
 ## 6) Common issues and fixes
 
 ### CORS errors
+
 - Ensure backend allows your Netlify domain in CORS settings.
 - Current backend uses permissive CORS, but production can be tightened if needed.
 
 ### Playwright launch fails in backend logs
+
 - Set `CHROMIUM_EXECUTABLE_PATH` for your host, or install host-supported browser runtime.
 
 ### Frontend still points to localhost
+
 - Verify `REACT_APP_API_BASE_URL` is set in Netlify env vars.
 - Redeploy after changing env vars.
 

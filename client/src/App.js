@@ -50,7 +50,7 @@ function App() {
     getServicesByRegion("Latin America")[0],
   );
   const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState(null); // null | 'success' | 'error'
+  const [status, setStatus] = useState(null); // null | 'loading' | 'success' | 'error'
   const [message, setMessage] = useState("");
   const [lastFilename, setLastFilename] = useState(null);
   const [analyzing, setAnalyzing] = useState(false);
@@ -79,8 +79,8 @@ function App() {
 
   const handleCapture = async () => {
     setLoading(true);
-    setStatus(null);
-    setMessage("Capturing screenshot... please wait.");
+    setStatus("loading");
+    setMessage("Waiting for the AI capture mechanism...");
 
     // Get service name and URL from selected service
     const serviceName = selectedService.name.replace(/\s+/g, "");
@@ -118,7 +118,9 @@ function App() {
         setFollowUpAnswer("");
       } else {
         setStatus("error");
-        setMessage(`Error: ${data.error}`);
+        setMessage(
+          `Error: ${data.error}${data.details ? ` (${data.details})` : ""}`,
+        );
       }
     } catch (error) {
       setStatus("error");
@@ -171,7 +173,9 @@ function App() {
         setAnalysis(data.results);
       } else {
         setStatus("error");
-        setMessage(`Error: ${data.error}`);
+        setMessage(
+          `Error: ${data.error}${data.details ? ` (${data.details})` : ""}`,
+        );
       }
     } catch (error) {
       setStatus("error");
@@ -306,6 +310,14 @@ function App() {
         >
           {loading ? "Capturing..." : "Capture front page"}
         </button>
+
+        {loading && (
+          <div className="capture-loading-indicator">
+            <span className="loading-dot"></span>
+            <span className="loading-dot delay-1"></span>
+            <span className="loading-dot delay-2"></span>
+          </div>
+        )}
 
         {capturedImageUrl && (
           <>
@@ -781,7 +793,9 @@ function App() {
 
             {analysis.audienceFitAnalysis && (
               <div className="analysis-section">
-                <h3 className="analysis-section-title">Audience Fit Analysis</h3>
+                <h3 className="analysis-section-title">
+                  Audience Fit Analysis
+                </h3>
                 <p className="analysis-explainer">
                   {analysisExplainers.audienceFitAnalysis}
                 </p>
@@ -824,11 +838,13 @@ function App() {
                   <div className="coverage-section">
                     <h4>⚠️ Fit Gaps</h4>
                     <ul>
-                      {analysis.audienceFitAnalysis.fitGaps.map((gap, index) => (
-                        <li key={index} className="gap-item">
-                          {gap}
-                        </li>
-                      ))}
+                      {analysis.audienceFitAnalysis.fitGaps.map(
+                        (gap, index) => (
+                          <li key={index} className="gap-item">
+                            {gap}
+                          </li>
+                        ),
+                      )}
                     </ul>
                   </div>
 

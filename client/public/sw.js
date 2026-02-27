@@ -1,27 +1,27 @@
-const CACHE_NAME = 'ai-front-page-tracker-v2';
+const CACHE_NAME = "ai-front-page-tracker-v2";
 
 const scopeUrl = new URL(self.registration.scope);
-const BASE_PATH = scopeUrl.pathname.replace(/\/$/, '');
+const BASE_PATH = scopeUrl.pathname.replace(/\/$/, "");
 const withBase = (path) => `${BASE_PATH}${path}`;
 
 const APP_SHELL = [
-  withBase('/'),
-  withBase('/index.html'),
-  withBase('/offline.html'),
-  withBase('/manifest.json'),
-  withBase('/favicon.ico'),
-  withBase('/logo192.png'),
-  withBase('/logo512.png'),
+  withBase("/"),
+  withBase("/index.html"),
+  withBase("/offline.html"),
+  withBase("/manifest.json"),
+  withBase("/favicon.ico"),
+  withBase("/logo192.png"),
+  withBase("/logo512.png"),
 ];
 
-self.addEventListener('install', (event) => {
+self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)),
   );
   self.skipWaiting();
 });
 
-self.addEventListener('activate', (event) => {
+self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches
       .keys()
@@ -34,17 +34,17 @@ self.addEventListener('activate', (event) => {
       ),
   );
 
-  if ('navigationPreload' in self.registration) {
+  if ("navigationPreload" in self.registration) {
     event.waitUntil(self.registration.navigationPreload.enable());
   }
 
   self.clients.claim();
 });
 
-self.addEventListener('fetch', (event) => {
+self.addEventListener("fetch", (event) => {
   const { request } = event;
 
-  if (request.method !== 'GET') {
+  if (request.method !== "GET") {
     return;
   }
 
@@ -54,11 +54,11 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  if (requestUrl.pathname.includes('/api/')) {
+  if (requestUrl.pathname.includes("/api/")) {
     return;
   }
 
-  if (request.mode === 'navigate') {
+  if (request.mode === "navigate") {
     event.respondWith(
       (async () => {
         try {
@@ -82,7 +82,7 @@ self.addEventListener('fetch', (event) => {
           if (cachedPage) {
             return cachedPage;
           }
-          return caches.match(withBase('/offline.html'));
+          return caches.match(withBase("/offline.html"));
         }
       })(),
     );
@@ -108,7 +108,7 @@ self.addEventListener('fetch', (event) => {
 
           return networkResponse;
         })
-        .catch(() => caches.match(withBase('/offline.html')));
+        .catch(() => caches.match(withBase("/offline.html")));
     }),
   );
 });

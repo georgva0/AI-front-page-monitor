@@ -218,6 +218,46 @@ select {
   color: #721c24;
 }
 
+.status-message.loading {
+  background-color: #e8eefc;
+  color: #1f3c88;
+}
+
+.capture-loading-indicator {
+  margin: 12px auto 0;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.loading-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: #222;
+  animation: loadingPulse 1.2s infinite ease-in-out;
+}
+
+.loading-dot.delay-1 {
+  animation-delay: 0.2s;
+}
+
+.loading-dot.delay-2 {
+  animation-delay: 0.4s;
+}
+
+@keyframes loadingPulse {
+  0%,
+  100% {
+    transform: scale(0.75);
+    opacity: 0.45;
+  }
+  50% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
 .analyze-btn {
   width: 100%;
   max-width: 400px;
