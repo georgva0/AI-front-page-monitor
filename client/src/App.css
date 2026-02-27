@@ -230,6 +230,10 @@ select {
   gap: 8px;
 }
 
+.analysis-loading-indicator {
+  margin-top: 8px;
+}
+
 .loading-dot {
   width: 10px;
   height: 10px;

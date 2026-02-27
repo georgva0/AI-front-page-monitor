@@ -142,6 +142,7 @@ function App() {
 
     setSelectedAnalysis(analysisType);
     setAnalyzing(true);
+    setStatus("loading");
     setAnalysis(null);
     setFollowUpAnswer("");
     setMessage("Analysing content with AI... please wait.");
@@ -361,6 +362,14 @@ function App() {
         )}
 
         {message && <div className={`status-message ${status}`}>{message}</div>}
+
+        {analyzing && (
+          <div className="capture-loading-indicator analysis-loading-indicator">
+            <span className="loading-dot"></span>
+            <span className="loading-dot delay-1"></span>
+            <span className="loading-dot delay-2"></span>
+          </div>
+        )}
 
         {analysis && (
           <div className="analysis-result">
