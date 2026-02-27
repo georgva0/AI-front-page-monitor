@@ -238,29 +238,129 @@ app.post("/api/capture", async (req, res) => {
       console.log(`[${requestId}] ⚠️ Cookie handling error: ${e.message}`);
     }
 
-    // Remove visible ad containers before screenshot
+    // Remove visible ad containers/placeholders before screenshot
     try {
+      await page.evaluate(() => {
+        const isNeutralGray = (background) => {
+          const match = background.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/i);
+          if (!match) return false;
+          const red = Number(match[1]);
+          const green = Number(match[2]);
+          const blue = Number(match[3]);
+          return (
+            Math.abs(red - green) <= 12 &&
+            Math.abs(green - blue) <= 12 &&
+            red >= 180
+          );
+        };
+
+        const removeAdElements = () => {
+          const adSelectors = [
+            '[class*="advert"]',
+            '[id*="advert"]',
+            '[class*="ad-"]',
+            '[id^="ad-"]',
+            '[id*="ad-slot"]',
+            '[class*="ad-slot"]',
+            '[data-testid*="ad-slot"]',
+            '[class*="dotcom-ad"]',
+            '[id*="dotcom-ad"]',
+            '[class*="bbccom_ads"]',
+            '[id*="bbccom_ads"]',
+            '[class*="commercial"]',
+            '[id*="commercial"]',
+            '[class*="sponsor"]',
+            '[id*="sponsor"]',
+            '[aria-label*="Publicidad"]',
+            '[aria-label*="Advertisement"]',
+            '[aria-label*="Anuncio"]',
+            '[id*="google_ads"]',
+            '[class*="google-ad"]',
+            '[data-component="advert"]',
+            '[data-component*="advert"]',
+            '[data-testid*="advert"]',
+            '[data-e2e*="advert"]',
+            "iframe[src*='doubleclick']",
+            "iframe[src*='googlesyndication']",
+            "iframe[src*='adservice']",
+          ];
+
+          adSelectors.forEach((selector) => {
+            try {
+              document.querySelectorAll(selector).forEach((el) => {
+                const parent = el.parentElement;
+                el.remove();
+
+                if (!parent) return;
+                const parentText = (parent.textContent || "")
+                  .replace(/\s+/g, " ")
+                  .trim();
+                const parentMedia = parent.querySelector(
+                  "img, picture, video, canvas, svg, iframe",
+                );
+                const parentRect = parent.getBoundingClientRect();
+
+                if (
+                  !parentMedia &&
+                  parentText.length < 16 &&
+                  parentRect.height >= 120 &&
+                  parentRect.width >= 300
+                ) {
+                  parent.remove();
+                }
+              });
+            } catch {
+              // Ignore selector issues
+            }
+          });
+        };
+
+        removeAdElements();
+
+        // Remove large, empty placeholder blocks often left after ad scripts are blocked
+        const candidates = document.querySelectorAll("div, section, aside");
+        candidates.forEach((el) => {
+          try {
+            const rect = el.getBoundingClientRect();
+            if (rect.height < 120 || rect.width < 250) {
+              return;
+            }
+
+            const hasMedia =
+              el.querySelector("img, picture, video, canvas, svg, iframe") !==
+              null;
+            const hasInteractive =
+              el.querySelector("a, button, input, select, textarea") !== null;
+            const visibleText = (el.textContent || "").replace(/\s+/g, " ").trim();
+
+            if (hasMedia || hasInteractive || visibleText.length > 12) {
+              return;
+            }
+
+            const style = window.getComputedStyle(el);
+            const background = style.backgroundColor || "";
+            if (isNeutralGray(background)) {
+              el.remove();
+            }
+          } catch {
+            // Ignore per-element errors
+          }
+        });
+      });
+
+      // Run one more pass after a short delay to catch late ad placeholders
+      await page.waitForTimeout(1200);
       await page.evaluate(() => {
         const adSelectors = [
           '[class*="advert"]',
           '[id*="advert"]',
           '[class*="ad-"]',
           '[id^="ad-"]',
-          '[id*="ad-slot"]',
           '[class*="ad-slot"]',
-          '[data-testid*="ad-slot"]',
           '[class*="dotcom-ad"]',
-          '[id*="dotcom-ad"]',
-          '[class*="bbccom_ads"]',
-          '[id*="bbccom_ads"]',
-          '[id*="google_ads"]',
-          '[class*="google-ad"]',
-          '[data-component="advert"]',
           '[data-component*="advert"]',
-          '[data-testid*="advert"]',
-          "iframe[src*='doubleclick']",
-          "iframe[src*='googlesyndication']",
-          "iframe[src*='adservice']",
+          '[aria-label*="Publicidad"]',
+          '[aria-label*="Advertisement"]',
         ];
 
         adSelectors.forEach((selector) => {
@@ -270,40 +370,6 @@ app.post("/api/capture", async (req, res) => {
             });
           } catch {
             // Ignore selector issues
-          }
-        });
-
-        // Remove large, empty placeholder blocks often left after ad scripts are blocked
-        const candidates = document.querySelectorAll("div, section, aside");
-        candidates.forEach((el) => {
-          try {
-            const rect = el.getBoundingClientRect();
-            if (rect.height < 180 || rect.width < 300) {
-              return;
-            }
-
-            const hasMedia =
-              el.querySelector("img, picture, video, canvas, svg, iframe") !==
-              null;
-            const visibleText = (el.textContent || "").replace(/\s+/g, " ").trim();
-
-            if (hasMedia || visibleText.length > 24) {
-              return;
-            }
-
-            const style = window.getComputedStyle(el);
-            const background = style.backgroundColor || "";
-            const hasNeutralFill =
-              background.includes("rgb(238") ||
-              background.includes("rgb(236") ||
-              background.includes("rgb(240") ||
-              background.includes("rgb(242");
-
-            if (hasNeutralFill) {
-              el.remove();
-            }
-          } catch {
-            // Ignore per-element errors
           }
         });
       });
