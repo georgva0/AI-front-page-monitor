@@ -246,8 +246,16 @@ app.post("/api/capture", async (req, res) => {
           '[id*="advert"]',
           '[class*="ad-"]',
           '[id^="ad-"]',
+          '[id*="ad-slot"]',
+          '[class*="ad-slot"]',
+          '[data-testid*="ad-slot"]',
+          '[class*="dotcom-ad"]',
+          '[id*="dotcom-ad"]',
+          '[class*="bbccom_ads"]',
+          '[id*="bbccom_ads"]',
           '[id*="google_ads"]',
           '[class*="google-ad"]',
+          '[data-component="advert"]',
           '[data-component*="advert"]',
           '[data-testid*="advert"]',
           "iframe[src*='doubleclick']",
@@ -262,6 +270,40 @@ app.post("/api/capture", async (req, res) => {
             });
           } catch {
             // Ignore selector issues
+          }
+        });
+
+        // Remove large, empty placeholder blocks often left after ad scripts are blocked
+        const candidates = document.querySelectorAll("div, section, aside");
+        candidates.forEach((el) => {
+          try {
+            const rect = el.getBoundingClientRect();
+            if (rect.height < 180 || rect.width < 300) {
+              return;
+            }
+
+            const hasMedia =
+              el.querySelector("img, picture, video, canvas, svg, iframe") !==
+              null;
+            const visibleText = (el.textContent || "").replace(/\s+/g, " ").trim();
+
+            if (hasMedia || visibleText.length > 24) {
+              return;
+            }
+
+            const style = window.getComputedStyle(el);
+            const background = style.backgroundColor || "";
+            const hasNeutralFill =
+              background.includes("rgb(238") ||
+              background.includes("rgb(236") ||
+              background.includes("rgb(240") ||
+              background.includes("rgb(242");
+
+            if (hasNeutralFill) {
+              el.remove();
+            }
+          } catch {
+            // Ignore per-element errors
           }
         });
       });
