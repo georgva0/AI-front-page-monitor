@@ -3,6 +3,7 @@
 This frontend powers the **AI Front Page Tracker** user interface.
 
 It lets users:
+
 - choose a BBC language service by region,
 - capture the latest front page screenshot via backend automation,
 - run multiple AI analyses on the captured image,
@@ -11,6 +12,7 @@ It lets users:
 ## What the app does
 
 The UI communicates with a backend API to:
+
 1. Capture a fresh screenshot of a selected front page.
 2. Display that screenshot preview.
 3. Run one selected analysis type (summary, sentiment, coverage, audience fit, etc.).
@@ -58,11 +60,13 @@ npm start
 This frontend is designed to be deployed on Netlify.
 
 Expected setup:
+
 - Base directory: `client`
 - Build command: `npm ci && npm run build`
 - Publish directory: `build`
 - Environment variable: `REACT_APP_API_BASE_URL=<your-backend-url>`
 
 For full deployment instructions, see:
+
 - `../DEPLOY_NETLIFY.md`
 - `../HOW_IT_WORKS.md`

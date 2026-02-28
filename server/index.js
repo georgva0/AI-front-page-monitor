@@ -331,7 +331,9 @@ app.post("/api/capture", async (req, res) => {
               null;
             const hasInteractive =
               el.querySelector("a, button, input, select, textarea") !== null;
-            const visibleText = (el.textContent || "").replace(/\s+/g, " ").trim();
+            const visibleText = (el.textContent || "")
+              .replace(/\s+/g, " ")
+              .trim();
 
             if (hasMedia || hasInteractive || visibleText.length > 12) {
               return;
@@ -404,7 +406,9 @@ app.post("/api/capture", async (req, res) => {
           }
         }
       });
-      console.log(`[${requestId}] ✓ Fallback fonts applied for multilingual text`);
+      console.log(
+        `[${requestId}] ✓ Fallback fonts applied for multilingual text`,
+      );
     } catch (fontError) {
       console.log(
         `[${requestId}] ⚠️ Font fallback warning: ${fontError.message}`,

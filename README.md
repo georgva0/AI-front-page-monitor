@@ -97,11 +97,13 @@ Frontend runs on `http://localhost:3000`.
 - Required env var: `REACT_APP_API_BASE_URL=<render-backend-url>`
 
 See full steps in:
+
 - `DEPLOY_NETLIFY.md`
 
 ## Keep-alive (optional)
 
 To reduce free-tier cold starts, use:
+
 - `scripts/keep_render_alive.sh`
 
 Schedule with cron (example every 14 minutes):

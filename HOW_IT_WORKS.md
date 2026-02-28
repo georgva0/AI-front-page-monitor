@@ -7,6 +7,7 @@ This document explains what the app does, how data flows through it, and how the
 AI Front Page Tracker captures a screenshot of a selected BBC language service front page, then runs AI-powered analyses on the captured image.
 
 Main capabilities:
+
 - Capture a live front page screenshot
 - Run multiple analysis types (summary, sentiment, coverage, etc.)
 - Ask follow-up questions about the captured front page
@@ -29,6 +30,7 @@ The project has two parts:
   - Stores the most recent screenshot in `server/Screengrabs/`
 
 ### Main backend technologies
+
 - Express (API server)
 - Playwright (browser automation + screenshots)
 - Sharp (image conversion to WebP)
@@ -61,10 +63,12 @@ The project has two parts:
 ## 4) API endpoints
 
 ### Health
+
 - `GET /health`
 - Returns: `{ "status": "ok" }`
 
 ### Capture
+
 - `POST /api/capture`
 - Body:
   - `url` (string)
@@ -73,6 +77,7 @@ The project has two parts:
   - success + `filename`
 
 ### Analyze
+
 - `POST /api/analyze`
 - Body:
   - `filename` (string)
@@ -82,6 +87,7 @@ The project has two parts:
   - success + `results` object for selected analysis type
 
 ### Follow-up Q&A (streaming)
+
 - `POST /api/ask-frontpage`
 - Body:
   - `filename` (string)
@@ -95,6 +101,7 @@ The project has two parts:
 ## 5) Supported analysis types
 
 Current analysis options include:
+
 - Top 5 summary
 - Rewrite for social media
 - Updates frequency
@@ -119,6 +126,7 @@ The frontend maps each analysis type to an explainer text shown in the UI.
 ## 7) Screenshot storage behavior
 
 To keep server storage small:
+
 - After each successful new capture, old screenshot files are deleted.
 - Only the latest capture remains in `server/Screengrabs/`.
 
@@ -127,15 +135,18 @@ To keep server storage small:
 ## 8) Deployment model
 
 Typical production setup:
+
 - Frontend (`client/`) on Netlify
 - Backend (`server/`) on Render (or equivalent Node host)
 
 Key environment variables:
 
 ### Frontend
+
 - `REACT_APP_API_BASE_URL` = deployed backend base URL
 
 ### Backend
+
 - `GEMINI_API_KEY` = Gemini API key
 - `PORT` = provided by host
 - `PLAYWRIGHT_BROWSERS_PATH=0` (for browser binary path consistency)
@@ -146,6 +157,7 @@ Key environment variables:
 ## 9) Keep-alive (optional)
 
 A helper script exists:
+
 - `scripts/keep_render_alive.sh`
 
 It pings the Render `/health` endpoint and can be run via cron every 14 minutes to reduce cold starts on free-tier hosting.
