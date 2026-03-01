@@ -25,10 +25,11 @@ ChartJS.register(
 );
 
 function App() {
-  const apiBaseUrl = (
-    process.env.REACT_APP_API_BASE_URL || "http://localhost:5000"
-  ).replace(/\/$/, "");
-  const apiUrl = (pathname) => `${apiBaseUrl}${pathname}`;
+  const configuredApiBaseUrl = process.env.REACT_APP_API_BASE_URL
+    ? process.env.REACT_APP_API_BASE_URL.replace(/\/$/, "")
+    : "";
+  const apiUrl = (pathname) =>
+    configuredApiBaseUrl ? `${configuredApiBaseUrl}${pathname}` : pathname;
 
   const analysisExplainers = {
     topFiveSummary:
