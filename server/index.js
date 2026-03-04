@@ -19,6 +19,8 @@ const {
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+const MAX_CAPTURE_HEIGHT = Number(process.env.CAPTURE_MAX_HEIGHT || 5500);
+let captureInProgress = false;
 
 // Middleware
 app.use(cors()); // Allow requests from our React frontend
@@ -54,12 +56,21 @@ app.post("/api/capture", async (req, res) => {
     return res.status(400).json({ error: "URL and Service Name are required" });
   }
 
+  if (captureInProgress) {
+    return res.status(429).json({
+      error: "A capture is already in progress. Please wait a few seconds.",
+    });
+  }
+
+  captureInProgress = true;
+
   console.log(`[${requestId}] ========== CAPTURE REQUEST START ==========`);
   console.log(`[${requestId}] Service: ${serviceName}`);
   console.log(`[${requestId}] URL: ${url}`);
   console.log(`[${requestId}] Timestamp: ${new Date().toISOString()}`);
 
   let browser = null;
+  let tempJpegPath = null;
 
   // Set a response timeout of 120 seconds max
   const responseTimeout = setTimeout(() => {
@@ -82,6 +93,9 @@ app.post("/api/capture", async (req, res) => {
         "--no-sandbox",
         "--disable-setuid-sandbox",
         "--disable-dev-shm-usage",
+        "--disable-gpu",
+        "--disable-background-networking",
+        "--disable-background-timer-throttling",
       ],
     };
     if (process.env.CHROMIUM_EXECUTABLE_PATH) {
@@ -131,6 +145,11 @@ app.post("/api/capture", async (req, res) => {
     ];
 
     await context.route("**/*", (route) => {
+      const resourceType = route.request().resourceType();
+      if (["media", "eventsource", "websocket"].includes(resourceType)) {
+        return route.abort();
+      }
+
       const requestUrl = route.request().url();
       if (blockedHosts.some((host) => requestUrl.includes(host))) {
         return route.abort();
@@ -156,14 +175,14 @@ app.post("/api/capture", async (req, res) => {
 
     // Give the page just 1 second to render
     console.log(`[${requestId}] Waiting for render...`);
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(600);
     console.log(`[${requestId}] ✓ Render wait complete`);
 
     // Click the cookie consent button using the data-cookie-banner attribute
     console.log(`[${requestId}] Attempting to click cookie consent button...`);
     try {
       // Wait for page to settle
-      await page.waitForTimeout(2000);
+      await page.waitForTimeout(1200);
 
       // Debug: Log button existence
       const buttonExists = await page.evaluate(() => {
@@ -179,7 +198,7 @@ app.post("/api/capture", async (req, res) => {
           force: true,
         });
         console.log(`[${requestId}] ✓ Button clicked via page.click()`);
-        await page.waitForTimeout(2000);
+        await page.waitForTimeout(1000);
       } catch (clickErr) {
         console.log(`[${requestId}] page.click() failed: ${clickErr.message}`);
 
@@ -196,7 +215,7 @@ app.post("/api/capture", async (req, res) => {
 
         if (clicked) {
           console.log(`[${requestId}] ✓ Button clicked via evaluate`);
-          await page.waitForTimeout(2000);
+          await page.waitForTimeout(1000);
         } else {
           console.log(
             `[${requestId}] ℹ️ Button not found with selector, trying to hide banner...`,
@@ -351,7 +370,7 @@ app.post("/api/capture", async (req, res) => {
       });
 
       // Run one more pass after a short delay to catch late ad placeholders
-      await page.waitForTimeout(1200);
+      await page.waitForTimeout(700);
       await page.evaluate(() => {
         const adSelectors = [
           '[class*="advert"]',
@@ -419,17 +438,32 @@ app.post("/api/capture", async (req, res) => {
     const timestamp = getTimestamp();
     const filename = `${serviceName}_${timestamp}.webp`;
     const filepath = path.join(screengrabsDir, filename);
+    tempJpegPath = path.join(screengrabsDir, `${serviceName}_${timestamp}.jpg`);
 
-    // Take full page screenshot as JPEG with quality 85
+    // Take full page screenshot directly to disk to reduce Node memory usage
     console.log(`[${requestId}] Taking screenshot...`);
-    const screenshotBuffer = await page.screenshot({
+    await page.screenshot({
+      path: tempJpegPath,
       fullPage: true,
       type: "jpeg",
-      quality: 85,
+      quality: 72,
+      animations: "disabled",
     });
 
-    // Convert to WebP
-    await sharp(screenshotBuffer).webp({ quality: 80 }).toFile(filepath);
+    // Convert to WebP and cap image height to reduce memory/storage pressure
+    await sharp(tempJpegPath)
+      .resize({
+        height: MAX_CAPTURE_HEIGHT,
+        fit: "inside",
+        withoutEnlargement: true,
+      })
+      .webp({ quality: 70, effort: 4 })
+      .toFile(filepath);
+
+    if (fs.existsSync(tempJpegPath)) {
+      fs.unlinkSync(tempJpegPath);
+    }
+
     console.log(`[${requestId}] ✓ Screenshot taken and converted to WebP`);
     console.log(`[${requestId}] Saved to: ${filepath}`);
 
@@ -469,10 +503,14 @@ app.post("/api/capture", async (req, res) => {
       .json({ error: "Failed to capture screenshot", details: error.message });
   } finally {
     clearTimeout(responseTimeout);
+    captureInProgress = false;
     if (browser) {
       console.log(`[${requestId}] Closing browser...`);
       await browser.close();
       console.log(`[${requestId}] ✓ Browser closed`);
+    }
+    if (tempJpegPath && fs.existsSync(tempJpegPath)) {
+      fs.unlinkSync(tempJpegPath);
     }
   }
 });
