@@ -81,7 +81,9 @@ function App() {
   const handleCapture = async () => {
     setLoading(true);
     setStatus("loading");
-    setMessage("Waiting for the AI capture mechanism...");
+    setMessage(
+      "Capturing front page - this process can take up to 45 seconds... ",
+    );
 
     // Get service name and URL from selected service
     const serviceName = selectedService.name.replace(/\s+/g, "");
