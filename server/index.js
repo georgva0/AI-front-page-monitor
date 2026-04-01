@@ -590,94 +590,104 @@ app.post("/api/analyze", async (req, res) => {
         `[${requestId}] Sending to Gemini for Social Media Rewrite...`,
       );
       const socialMediaData = await rewriteForSocialMedia(
-        filepath,
-        serviceName,
-      );
-      console.log(`[${requestId}] ✓ Social Media Rewrite completed`);
-      results.socialMediaRewrite = socialMediaData;
-    }
+        // Dismiss cookie/consent banner
+        console.log(
+          `[${requestId}] Attempting to dismiss cookie consent banner...`,
+        );
+        try {
+          // Wait for page to settle
+          await page.waitForTimeout(1200);
 
-    console.log(
-      `[${requestId}] ========== AI ANALYSIS REQUEST SUCCESS ==========`,
-    );
+          // Try to click the accept button.
+          // BBC uses a plain <button> with no id/class — use structural and text-based targeting.
+          const clicked = await page.evaluate(() => {
+            // 1. Attribute-based selectors (older BBC pattern)
+            const selectorTargets = [
+              '[data-cookie-banner="accept"]',
+              'button[class*="accept"]',
+              'button[id*="accept"]',
+              // BBC consent action list: first <li> always contains the accept button
+              ".e1scntac3 li:first-child button",
+              ".e1scntac5 button",
+            ];
+            for (const sel of selectorTargets) {
+              const btn = document.querySelector(sel);
+              if (btn && btn.offsetParent !== null) {
+                btn.click();
+                return "selector:" + sel;
+              }
+            }
 
-    res.json({
-      success: true,
-      results: results,
-    });
-  } catch (error) {
-    console.error(`[${requestId}] ❌ ANALYSIS FAILED:`);
-    console.error(`[${requestId}] Error:`, error.message);
-    console.log(
-      `[${requestId}] ========== AI ANALYSIS REQUEST FAILED ==========`,
-    );
-    res.status(500).json({
-      error: "Failed to analyse screenshot",
-      details: error.message,
-    });
-  }
-});
+            // 2. Text-based fallback covering BBC's multilingual services
+            const acceptPatterns = [
+              /^i\s*agree$/i,                       // English
+              /yes,?\s*i\s*agree/i,
+              /accept\s*(all|cookies)?/i,
+              /agree\s*&?\s*close/i,
+              /s[íi],?\s*estoy\s*de\s*acuerdo/i,   // Spanish
+              /acepto/i,
+              /sim,?\s*concordo/i,                   // Portuguese
+              /concordo/i,
+              /accetta/i,                            // Italian
+              /j['']?accepte/i,                      // French
+              /ich\s*stimme\s*zu/i,                  // German
+              /agree/i,                              // catch-all English
+            ];
+            const buttons = Array.from(document.querySelectorAll("button"));
+            for (const btn of buttons) {
+              if (btn.offsetParent === null) continue;
+              const text = (btn.textContent || "").trim();
+              if (acceptPatterns.some((re) => re.test(text))) {
+                btn.click();
+                return "text:" + text.substring(0, 40);
+              }
+            }
+            return null;
+          });
 
-app.post("/api/ask-frontpage", async (req, res) => {
-  const { filename, question, serviceName } = req.body;
-  const requestId = Date.now();
+          if (clicked) {
+            console.log(`[${requestId}] ✓ Cookie accept clicked (${clicked})`);
+            await page.waitForTimeout(1000);
+          } else {
+            console.log(
+              `[${requestId}] ℹ️ Accept button not found`,
+            );
+          }
 
-  if (!filename) {
-    return res.status(400).json({ error: "Filename is required" });
-  }
-
-  if (!question || !question.trim()) {
-    return res.status(400).json({ error: "Question is required" });
-  }
-
-  console.log(`[${requestId}] ========== FOLLOW-UP QUESTION START ==========`);
-  console.log(`[${requestId}] Screenshot: ${filename}`);
-  console.log(`[${requestId}] Question: ${question}`);
-
-  try {
-    const filepath = path.join(screengrabsDir, filename);
-
-    if (!fs.existsSync(filepath)) {
-      console.log(`[${requestId}] ❌ File not found: ${filepath}`);
-      return res.status(404).json({ error: "Screenshot file not found" });
-    }
-
-    res.setHeader("Content-Type", "text/plain; charset=utf-8");
-    res.setHeader("Cache-Control", "no-cache");
-    res.setHeader("Connection", "keep-alive");
-    res.flushHeaders();
-
-    const stream = await askQuestionAboutFrontPageStream(
-      filepath,
-      question,
-      serviceName,
-    );
-
-    for await (const chunk of stream) {
-      const text = chunk.text();
-      if (text) {
-        res.write(text);
-      }
-    }
-
-    console.log(`[${requestId}] ✓ Follow-up answer completed`);
-    console.log(
-      `[${requestId}] ========== FOLLOW-UP QUESTION SUCCESS ==========`,
-    );
-    res.end();
-  } catch (error) {
-    console.error(
-      `[${requestId}] ❌ FOLLOW-UP QUESTION FAILED:`,
-      error.message,
-    );
-    if (!res.headersSent) {
-      return res.status(500).json({
-        error: "Failed to answer follow-up question",
-        details: error.message,
-      });
-    }
-    res.write("\n\n[Error generating response. Please try again.]");
-    res.end();
+          // Always run CSS hide as a safety net — catches any remaining overlay
+          // regardless of whether the click succeeded (e.g. dialog re-appears or
+          // a second advertising-cookies layer is present).
+          await page.evaluate(() => {
+            const bannerSelectors = [
+              "[data-cookie-banner]",
+              '[class*="cookie-banner"]',
+              '[class*="cookie"]',
+              '[id*="cookie"]',
+              '[class*="consent"]',
+              '[id*="consent"]',
+              '[role="dialog"]',
+              ".bbc-m6b7yc",
+              ".e1scntac0", // BBC consent dialog container (2025+)
+              ".e1scntac1",
+            ];
+            bannerSelectors.forEach((selector) => {
+              try {
+                document.querySelectorAll(selector).forEach((el) => {
+                  el.style.setProperty("display", "none", "important");
+                  el.style.setProperty("visibility", "hidden", "important");
+                  el.style.setProperty("opacity", "0", "important");
+                  el.setAttribute("aria-hidden", "true");
+                });
+              } catch (e) {
+                // Ignore selector errors
+              }
+            });
+          });
+          console.log(`[${requestId}] ✓ Cookie banner CSS hide applied`);
+          await page.waitForTimeout(800);
+        } catch (e) {
+          console.log(`[${requestId}] ⚠️ Cookie handling error: ${e.message}`);
+        }
   }
 });
 
