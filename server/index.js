@@ -178,80 +178,90 @@ app.post("/api/capture", async (req, res) => {
     await page.waitForTimeout(600);
     console.log(`[${requestId}] ✓ Render wait complete`);
 
-    // Click the cookie consent button using the data-cookie-banner attribute
-    console.log(`[${requestId}] Attempting to click cookie consent button...`);
+    // Dismiss cookie/consent banner
+    console.log(
+      `[${requestId}] Attempting to dismiss cookie consent banner...`,
+    );
     try {
       // Wait for page to settle
       await page.waitForTimeout(1200);
 
-      // Debug: Log button existence
-      const buttonExists = await page.evaluate(() => {
-        const btn = document.querySelector('[data-cookie-banner="accept"]');
-        return !!btn;
-      });
-      console.log(`[${requestId}] Button exists: ${buttonExists}`);
-
-      // Method 1: Try direct click via page.click()
-      try {
-        await page.click('[data-cookie-banner="accept"]', {
-          timeout: 3000,
-          force: true,
-        });
-        console.log(`[${requestId}] ✓ Button clicked via page.click()`);
-        await page.waitForTimeout(1000);
-      } catch (clickErr) {
-        console.log(`[${requestId}] page.click() failed: ${clickErr.message}`);
-
-        // Method 2: Click via evaluate with scrollIntoView
-        const clicked = await page.evaluate(() => {
-          const btn = document.querySelector('[data-cookie-banner="accept"]');
-          if (btn) {
-            btn.scrollIntoView({ behavior: "instant", block: "center" });
+      // Try to click the accept button - BBC uses a plain <button> with no id/class,
+      // so we search by selector first, then fall back to text-content matching.
+      const clicked = await page.evaluate(() => {
+        // Common selector-based targets
+        const selectorTargets = [
+          '[data-cookie-banner="accept"]',
+          'button[class*="accept"]',
+          'button[id*="accept"]',
+        ];
+        for (const sel of selectorTargets) {
+          const btn = document.querySelector(sel);
+          if (btn && btn.offsetParent !== null) {
             btn.click();
-            return true;
+            return "selector:" + sel;
           }
-          return false;
-        });
-
-        if (clicked) {
-          console.log(`[${requestId}] ✓ Button clicked via evaluate`);
-          await page.waitForTimeout(1000);
-        } else {
-          console.log(
-            `[${requestId}] ℹ️ Button not found with selector, trying to hide banner...`,
-          );
-
-          // Method 3: Hide via multiple aggressive CSS approaches
-          await page.evaluate(() => {
-            // Try to hide all common cookie banner elements
-            const bannersSelectors = [
-              "[data-cookie-banner]",
-              '[class*="cookie-banner"]',
-              '[class*="cookie"]',
-              '[id*="cookie"]',
-              '[class*="consent"]',
-              '[id*="consent"]',
-              '[role="dialog"]',
-              ".bbc-m6b7yc", // BBC specific
-            ];
-
-            bannersSelectors.forEach((selector) => {
-              try {
-                document.querySelectorAll(selector).forEach((el) => {
-                  el.style.display = "none !important";
-                  el.style.visibility = "hidden !important";
-                  el.style.opacity = "0 !important";
-                  el.style.pointerEvents = "none !important";
-                  el.setAttribute("aria-hidden", "true");
-                });
-              } catch (e) {
-                // Ignore selector errors
-              }
-            });
-          });
-          console.log(`[${requestId}] ✓ Cookie banners hidden via CSS`);
-          await page.waitForTimeout(1000);
         }
+
+        // Text-based fallback: find a visible button whose text looks like acceptance
+        const acceptPatterns = [
+          /yes,?\s*i\s*agree/i,
+          /accept\s*(all|cookies)?/i,
+          /ok,?\s*i\s*agree/i,
+          /agree\s*&\s*close/i,
+          /s[íi],?\s*estoy\s*de\s*acuerdo/i, // Spanish
+          /acepto/i,
+          /accetta/i,
+          /agree/i,
+        ];
+        const buttons = Array.from(document.querySelectorAll("button"));
+        for (const btn of buttons) {
+          if (btn.offsetParent === null) continue;
+          const text = (btn.textContent || "").trim();
+          if (acceptPatterns.some((re) => re.test(text))) {
+            btn.click();
+            return "text:" + text.substring(0, 40);
+          }
+        }
+        return null;
+      });
+
+      if (clicked) {
+        console.log(`[${requestId}] ✓ Cookie accept clicked (${clicked})`);
+        await page.waitForTimeout(1000);
+      } else {
+        console.log(
+          `[${requestId}] ℹ️ Accept button not found, hiding banner via CSS...`,
+        );
+
+        // Fallback: hide all known cookie/consent banner containers
+        await page.evaluate(() => {
+          const bannerSelectors = [
+            "[data-cookie-banner]",
+            '[class*="cookie-banner"]',
+            '[class*="cookie"]',
+            '[id*="cookie"]',
+            '[class*="consent"]',
+            '[id*="consent"]',
+            '[role="dialog"]',
+            ".bbc-m6b7yc",
+            ".e1scntac0", // BBC consent dialog (2025+)
+          ];
+          bannerSelectors.forEach((selector) => {
+            try {
+              document.querySelectorAll(selector).forEach((el) => {
+                el.style.setProperty("display", "none", "important");
+                el.style.setProperty("visibility", "hidden", "important");
+                el.style.setProperty("opacity", "0", "important");
+                el.setAttribute("aria-hidden", "true");
+              });
+            } catch (e) {
+              // Ignore selector errors
+            }
+          });
+        });
+        console.log(`[${requestId}] ✓ Cookie banners hidden via CSS`);
+        await page.waitForTimeout(1000);
       }
     } catch (e) {
       console.log(`[${requestId}] ⚠️ Cookie handling error: ${e.message}`);
